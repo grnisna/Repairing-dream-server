@@ -45,10 +45,34 @@ async function run() {
       res.send(result);
     });
 
+    // order post 
     app.post('/order', async(req,res)=>{
         const order = req.body;
         const result = await orderCollection.insertOne(order);
         res.send(order);
+    });
+
+    // get orders for specific email address 
+    app.get('/orders', async(req,res) =>{
+      let query = {};
+      const activeUser = req.query.email;
+      if(activeUser){
+        query={
+          email: activeUser
+        }
+      };
+      const cursor = orderCollection.find(query);
+      const orders = await cursor.toArray();
+      res.send(orders);
+    });
+
+
+    // delete one order 
+    app.delete('/orders/:id', async(req,res)=>{
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await orderCollection.deleteOne(query);
+      res.send(result);
     })
 
 
