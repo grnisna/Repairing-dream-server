@@ -26,7 +26,9 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    const serviceCollection = client.db("repairing_dream").collection("services");
+    const serviceCollection = client
+      .db("repairing_dream")
+      .collection("services");
     const orderCollection = client.db("repairing_dream").collection("order");
 
     app.get("/services", async (req, res) => {
@@ -40,52 +42,49 @@ async function run() {
     app.get("/services/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: id };
-    //   const query = {_id: new ObjectId(id)} (if has mongodb id)
+      //   const query = {_id: new ObjectId(id)} (if has mongodb id)
       const result = await serviceCollection.findOne(query);
       res.send(result);
     });
 
-    // order post 
-    app.post('/order', async(req,res)=>{
-        const order = req.body;
-        const result = await orderCollection.insertOne(order);
-        res.send(order);
+    // order post
+    app.post("/order", async (req, res) => {
+      const order = req.body;
+      const result = await orderCollection.insertOne(order);
+      res.send(order);
     });
 
-    // get orders for specific email address 
-    app.get('/orders', async(req,res) =>{
+    // get orders for specific email address
+    app.get("/orders", async (req, res) => {
       let query = {};
       const activeUser = req.query.email;
-      if(activeUser){
-        query={
-          email: activeUser
-        }
-      };
+      if (activeUser) {
+        query = {
+          email: activeUser,
+        };
+      }
       const cursor = orderCollection.find(query);
       const orders = await cursor.toArray();
       res.send(orders);
     });
 
-
-    // delete one order 
-    app.delete('/orders/:id', async(req,res)=>{
+    // delete one order
+    app.delete("/orders/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await orderCollection.deleteOne(query);
       res.send(result);
-    })
+    });
 
-
-
-
-
-
-
-
-
-
-
-
+    // update approved status
+    app.patch("/orders/:id", async (req, res) => {
+      const id = req.params.id;
+      const status = req.body.status;
+      const query = { _id: new ObjectId(id) };
+      const updateDoc = { $set: { status: status } };
+      const resutl = await orderCollection.updateOne(query,updateDoc);
+      res.send(resutl);
+    });
   } finally {
   }
 }
