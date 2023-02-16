@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const port = process.env.PORT || 5000;
 require("dotenv").config();
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const app = express();
@@ -23,6 +24,46 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
+
+// // verify token access 
+// function verifyToken(req,res, next){  
+//   const authHeader = req.headers.authorization;
+//   console.log(authHeader);
+//   if(!authHeader){
+//     res.status(401).send({message:'un-authorized access'})
+//   }
+//   const token = authHeader.split(' ')[1];
+//   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err,decoded)=>{
+//     if(err){
+//       res.status(401).send({message:'un-authorized access'})
+//     }
+//     req.decoded = decoded;
+//     next();
+//   });
+// }
+
+const verifyJWT = (req,res,next) =>{
+  const authorization = req.headers.authorization;
+
+  // jodi authorization na thake 
+  if(!authorization){
+    return res.status(401).send({message:'unauthorize access'})
+  }
+
+  const token = authorization.split(' ')[1];
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err,decoded)=>{
+    if(err){
+      return res.status(403).send({message:'un authorized access'})
+    }
+
+    req.decoded = decoded;
+
+    next();
+  })
+
+  
+}
 
 async function run() {
   try {
@@ -55,9 +96,13 @@ async function run() {
     });
 
     // get orders for specific email address
-    app.get("/orders", async (req, res) => {
+
+    app.get("/orders",verifyJWT, async (req, res) => {
       let query = {};
       const activeUser = req.query.email;
+      if(req.decoded.email !== activeUser){
+        res.status(444).send({message:'un authorized acced'})
+      }
       if (activeUser) {
         query = {
           email: activeUser,
@@ -85,6 +130,21 @@ async function run() {
       const resutl = await orderCollection.updateOne(query,updateDoc);
       res.send(resutl);
     });
+
+    // json web token 
+    app.post('/jwt',async(req,res)=>{
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET,{expiresIn:'10h'}) ;
+      res.send({token});
+    })
+
+
+
+
+
+
+
+
   } finally {
   }
 }
